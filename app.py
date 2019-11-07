@@ -4,13 +4,6 @@ import dash_html_components as html
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 import pandas as pd
-
-from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
-
-import plotly as py
-
-import numpy as np
-import matplotlib.pyplot as plt
 import geopandas as gpd
 ########### Define a few variables ######
 
