@@ -8,7 +8,6 @@ import pandas as pd
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 
 import plotly as py
-from plotly.graph_objs import *
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -80,44 +79,67 @@ def stats(pu_selected, do_selected):
 
      return table
 
-     #return text + '\n' + text2 + text3 + text4
+def barchart(attribute):
+    boroughs = ['Manhattan', 'Queens','Brooklyn', 'Bronx', 'Staten Island']
+    fig = go.Figure([go.Bar(x=boroughs, y = [1,2,3,4,5])])
+    mylayout = go.Layout(
+                    title = f'Avg Fare by Pickup Borough')
+    return fig
+
+
 
 ########### Layout
 
 app.layout = html.Div(children=[
-    html.H1('Green Taxi Trips in NYC'),
-    html.Br(),
-    html.Div([
-        html.Div([
-            dcc.Dropdown(id='pu-location',
-                    options=[{'label': i, 'value': i} for i in pu_boroughs],
-                    value='Brooklyn',
-                    style={'width': '5 00px'}),
-        ], className= 'six columns') ,
-        html.Div([
-            dcc.Dropdown(id='do-location',
-                    options=[{'label': i, 'value': i} for i in do_boroughs],
-                    value='Queens',
-                    style={'width': '500px'}),
-        ], className = 'six columns'),
-    ], className = 'twelve columns'),
-    html.Br(),
-    html.Br(),
-    html.Div(id='stats_values', children=''),
-    dcc.Graph(id='stats_table', figure = update_fig('Brooklyn', 'Queens', 'Avg Fare')),
-    html.Br(),
-    html.Div([
-        dcc.Dropdown(id='attribute',
-                options=[{'label': i, 'value': i} for i in attributes],
-                value='Avg Fare',
-                style={'width': '500px'})]),
-    html.Br(),
-    dcc.Graph(id='display-value', figure = stats('Brooklyn', 'Queens')),
-    html.A('Code on Github', href=githublink),
-    html.Br(),
-    html.A("Data Source", href=sourceurl),
-    ]
-)
+    dcc.Tabs(id = 'tabs', children = [
+        dcc.Tab(label = 'Taxi Trips by Borough', children = [
+                html.H1('🚕 Green Taxi Trips in NYC 🚕'),
+                html.Br(),
+                html.Div([
+                    html.Div([
+                        html.H5('Select a pickup borough:'),
+                        dcc.Dropdown(id='pu-location',
+                                options=[{'label': i, 'value': i} for i in pu_boroughs],
+                                value='Brooklyn',
+                                style={'width': '5 00px'}),
+                    ], className= 'six columns') ,
+                    html.Div([
+                        html.H5('Select a dropoff borough:'),
+                        dcc.Dropdown(id='do-location',
+                                options=[{'label': i, 'value': i} for i in do_boroughs],
+                                value='Queens',
+                                style={'width': '500px'}),
+                    ], className = 'six columns'),
+                ], className = 'twelve columns'),
+                html.Br(),
+                html.Div(id='stats_values', children=''),
+                dcc.Graph(id='stats_table', figure = update_fig('Brooklyn', 'Queens', 'Avg Fare')),
+                html.Br(),
+                html.H5('Select an attribute to learn more about NYC taxi trips in January 2019 '),
+                html.Div([
+                    dcc.Dropdown(id='attribute',
+                            options=[{'label': i, 'value': i} for i in attributes],
+                            value='Avg Fare',
+                            style={'width': '500px'})]),
+                dcc.Graph(id='display-value', figure = stats('Brooklyn', 'Queens')),
+                html.A('Code on Github', href=githublink),
+                html.Br(),
+                html.A("Data Source", href=sourceurl),
+        ]),
+        dcc.Tab(label = 'Taxi Trips by Attribute', children = [
+                html.H1('🚕 Green Taxi Trips in NYC 🚕'),
+                html.Br(),
+                html.H5('Select an attribute to learn more about NYC taxi trips by Pickup and Dropoff Borough '),
+                html.Div([
+                    dcc.Dropdown(id='attribute2',
+                            options=[{'label': i, 'value': i} for i in attributes],
+                            value='Avg Fare',
+                            style={'width': '500px'})]),
+                dcc.Graph(id = 'barchart', figure = barchart('Avg Fare')),
+                dcc.Graph(id = 'barchart2', figure = barchart('Avg Fare')),
+                ]),
+    ])
+    ])
 
 ############ Callbacks
 @app.callback(dash.dependencies.Output('display-value', 'figure'),
@@ -130,7 +152,7 @@ def update_fig(pu_selected, do_selected, atr):
     mydata4 = go.Scatter(x = new_df['pu_date'].unique(),
                     y=new_df.groupby(['pu_date'])[atr].mean())
     mylayout = go.Layout(
-                    title = f'Select an attribute above to learn more about taxi trips from {pu_selected} to {do_selected} in January 2019',
+                    title = f'{atr} for trips from {pu_selected} to {do_selected} in January 2019',
                     xaxis = dict(title='Date'),
                     yaxis = dict(title= atr))
     fig = go.Figure(data=[mydata4], layout = mylayout)
@@ -144,19 +166,36 @@ def stats(pu_selected, do_selected):
      avg_fare = dict(new_df.groupby('PUBorough')['Avg Fare'].mean())
      avg_dist = dict(new_df.groupby('PUBorough')['Avg Distance'].mean())
      avg_pass = dict(new_df.groupby('PUBorough')['Avg # Passengers'].mean())
-
      x = ['Attribute', 'Value']
      y = [['Avg. Fare', 'Avg. Distance', 'Avg. # Passengers'], [round(avg_fare[pu_selected],1), round(avg_dist[pu_selected],1), round(avg_pass[pu_selected],1)]]
      table = go.Figure(data=go.Table(header = dict(values = x), cells=dict(values = y)))
-     #table.update_layout(width=500, height=300)
+     table.update_layout(height=300)
      return table
 
 @app.callback(dash.dependencies.Output('stats_values', 'children'),
               [dash.dependencies.Input('pu-location', 'value'),
               dash.dependencies.Input('do-location', 'value')])
 def stats(pu_selected, do_selected):
-     text = (f'The average taxi trip from {pu_selected} to {do_selected} has the following attributes: ')
+     text = (f'The average taxi trip from {pu_selected} to {do_selected} has the following attributes:')
      return text
+
+@app.callback(dash.dependencies.Output('barchart', 'figure'),
+              [dash.dependencies.Input('attribute2', 'value')])
+def barchart(attribute):
+    boroughs = ['Manhattan', 'Queens','Brooklyn', 'Bronx', 'Staten Island']
+    fig = go.Figure([go.Bar(x=boroughs, y = merged3.groupby(['PUBorough'])[attribute].mean(), marker_color = '#197609')])
+    fig.update_layout(
+                    title = f'{attribute} by Pickup Borough')
+    return fig
+
+@app.callback(dash.dependencies.Output('barchart2', 'figure'),
+              [dash.dependencies.Input('attribute2', 'value')])
+def barchart(attribute):
+    boroughs = ['Manhattan', 'Queens','Brooklyn', 'Bronx', 'Staten Island']
+    fig = go.Figure([go.Bar(x=boroughs, y = merged3.groupby(['DOBorough'])[attribute].mean(), marker_color = '#8CE37D')])
+    fig.update_layout(
+                    title = f'{attribute} by Dropoff Borough')
+    return fig
 
 
 ############ Deploy
